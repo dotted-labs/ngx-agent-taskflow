@@ -1,0 +1,56 @@
+<div class="task-tabs w-full flex flex-col h-[500px]">
+  <!-- Tabs Navigation - Always visible at top -->
+  <div class="border-b border-gray-200 bg-white sticky top-0 z-10">
+    <nav class="flex flex-nowrap overflow-x-auto" aria-label="Tabs">
+      @for (task of tasks; track task.id; let i = $index) {
+      <button
+        class="px-4 py-3 text-sm font-medium whitespace-nowrap flex items-center mr-1 focus:outline-none transition-colors duration-200"
+        [class]="
+          selectedTabIndex() === i
+            ? 'text-blue-600 border-b-2 border-blue-500'
+            : 'text-gray-500 hover:text-gray-700 hover:border-b-2 hover:border-gray-300'
+        "
+        (click)="selectTab(i)"
+        [attr.aria-selected]="selectedTabIndex() === i"
+        [attr.aria-controls]="'task-panel-' + task.id"
+      >
+        <span class="flex items-center">
+          <!-- Status indicator dot -->
+          <span
+            class="w-2.5 h-2.5 rounded-full mr-2"
+            [ngClass]="{
+              'bg-blue-500': task.status === 'starting',
+              'bg-yellow-500': task.status === 'processing',
+              'bg-green-500': task.status === 'done',
+              'bg-red-500': task.status === 'failed'
+            }"
+          ></span>
+          Task {{ i + 1 }}
+        </span>
+      </button>
+      }
+    </nav>
+  </div>
+
+  <!-- Tab Content - Scrollable -->
+  <div class="flex-1 overflow-y-auto px-4 py-2">
+    @for (task of tasks; track task.id; let i = $index) {
+    <div
+      [id]="'task-panel-' + task.id"
+      [hidden]="selectedTabIndex() !== i"
+      role="tabpanel"
+      [attr.aria-labelledby]="'task-tab-' + task.id"
+    >
+      <ngx-task-item
+        [task]="task"
+        [isActive]="selectedTabIndex() === i"
+        [componentMap]="componentMap"
+      ></ngx-task-item>
+    </div>
+    } @if (tasks.length === 0) {
+    <div class="text-center py-10 text-gray-500">
+      <p class="text-lg">No tasks yet. Click on "Run Demo Task" to start.</p>
+    </div>
+    }
+  </div>
+</div>
