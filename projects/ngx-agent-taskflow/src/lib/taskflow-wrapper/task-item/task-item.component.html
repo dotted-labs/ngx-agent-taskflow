@@ -1,23 +1,41 @@
-<div class="task-item mb-4">
-  @if (task.data.length > 0) {
-    <div class="task-data">
-      <ul class=" ">
-        @for (item of task.data; track item) {
-          <li class="p-3 border-b border-gray-200">
-            <ng-container *ngComponentOutlet="getComponentForItem(item.type); inputs: { item: item }"></ng-container>
-          </li>
+<div class="grid grid-rows-[1fr_auto] h-full">
+  <ul class="overflow-y-auto flex-grow row-span-1" #messageContainer>
+    @for (message of task.messages; track message; let last = $last) {
+      <li [class.mb-12]="last">
+        @for (item of message.data; track item) {
+          <ng-container *ngComponentOutlet="getComponentForItem(message.sender, item.type); inputs: { item: item }"></ng-container>
         }
-        @if (task.status === 'processing') {
-          <li class="p-3">
-            <span class="text-pink-500 font-semibold text-xs rounded-full bg-pink-100 px-3 py-1">🧠 Pensando... </span>
-          </li>
-        }
-        @if (task.status === 'done') {
-          <li class="p-3">
-            <span class="text-green-500 font-semibold text-xs rounded-full bg-green-100 px-3 py-1">👌 Finalizado </span>
-          </li>
-        }
-      </ul>
+      </li>
+    }
+  </ul>
+  @if (task.allowUserInput) {
+    <div class="px-3 pb-3 bg-white z-10 row-span-1">
+      @if (task.status === 'processing') {
+        <ng-container *ngComponentOutlet="defaultComponentMap()['think']"></ng-container>
+      }
+      <div class="flex flex-row gap-2 w-full border border-base-300 rounded-xl p-2">
+        <textarea
+          [disabled]="task.status === 'processing'"
+          [placeholder]="task.status === 'processing' ? 'Thinking...' : 'Write a message...'"
+          [(ngModel)]="currentUserInput"
+          rows="1"
+          class="flex-1 focus:outline-none placeholder:text-base-300"
+          style="resize: none"
+          (keydown.enter)="sendMessage()"
+        ></textarea>
+        <button
+          class="btn btn-primary rounded-full h-10 w-10 p-0 hover:bg-primary/80 transition-all duration-300"
+          [disabled]="task.status === 'processing' || !currentUserInput.length"
+          [class.scale-80]="!currentUserInput.length"
+          (click)="sendMessage()"
+        >
+          @if (task.status === 'processing') {
+            <ng-icon name="tablerLoader" class="text-xl animate-spin"></ng-icon>
+          } @else {
+            <ng-icon name="tablerArrowUp" class="text-xl"></ng-icon>
+          }
+        </button>
+      </div>
     </div>
   }
 </div>

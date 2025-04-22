@@ -3,13 +3,14 @@ import { CommonModule } from '@angular/common';
 import { TaskData } from '../../store/models/task-data.interface';
 import { MessageComponentAbstraction } from '../../store/models/message-component-abstraction';
 import { TaskMessageTypes } from '../../store/models/message-types.enum';
+
 @Component({
-  selector: 'ngx-message-default',
+  selector: 'ngx-message-user-default',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './message-default.component.html',
+  templateUrl: './message-user-default.component.html',
 })
-export class MessageDefaultComponent implements MessageComponentAbstraction<TaskMessageTypes, any> {
+export class MessageUserDefaultComponent implements MessageComponentAbstraction<TaskMessageTypes, any> {
   public item = input.required<TaskData<TaskMessageTypes, any>>();
   public observation = computed(() => this.item().observation);
   public content = computed(() => this.item().content);

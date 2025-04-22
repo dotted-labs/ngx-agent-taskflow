@@ -1,4 +1,5 @@
 import { Task } from '../models/task.interface';
+import { TaskMessageTypes } from '../models/message-types.enum';
 import { TaskStatus } from '../models/task-status.enum';
 
 /**
@@ -11,10 +12,11 @@ export function generateTaskId(): string {
 /**
  * Creates a new task with the given initial data
  */
-export function createTask<T extends string, U>(initialData: Partial<Task<T, U>> = {}): Task<T, U> {
+export function createTask<T extends TaskMessageTypes, U>(initialData: Partial<Task<T, U>> = {}): Task<T, U> {
   return {
     id: initialData.id || generateTaskId(),
     status: initialData.status || TaskStatus.STARTING,
-    data: initialData.data || [],
+    allowUserInput: initialData.allowUserInput || true,
+    messages: initialData.messages || [],
   };
 }

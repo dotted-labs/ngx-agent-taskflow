@@ -1,0 +1,10 @@
+<div class="flex bg-base-200/60 px-4 py-2 flex-col gap-1 mb-2">
+  <div class="flex justify-between items-center cursor-pointer" (click)="toggleCollapse()">
+    <span class="text-base-content/30 text-xs">Context</span>
+    <ng-icon [name]="isCollapsed() ? 'tablerChevronDown' : 'tablerChevronUp'" size="16" class="text-base-content/30"></ng-icon>
+  </div>
+
+  @if (!isCollapsed()) {
+    <span class="text-xs text-base-content/60">{{ item().content }}</span>
+  }
+</div>

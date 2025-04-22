@@ -1,5 +1,3 @@
-export enum MessageTypes {
-  MESSAGE = 'message',
+export enum CustomTaskMessageTypes {
   PROGRESS = 'progress',
-  CUSTOM = 'custom',
 }
