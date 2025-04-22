@@ -1,32 +1,20 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import {
-  NgxAgentTaskflowWrapperComponent,
-  TaskListStore,
-  Task,
-  TaskStatus,
-  TaskData,
-  ComponentMap,
-} from '@dotted-labs/ngx-agent-taskflow';
+import { NgxAgentTaskflowWrapperComponent, TaskListStore, Task, TaskStatus, TaskData, ComponentMap } from '@dotted-labs/ngx-agent-taskflow';
 import { TaskService } from './services/task.service';
 import { Observable, firstValueFrom } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { v4 as uuidv4 } from 'uuid';
 import { CustomMessageComponent } from './custom-message/custom-message.component';
 import { CustomProgressComponent } from './custom-progress/custom-progress.component';
+import { HttpClient } from '@angular/common/http';
+import { MessageTypes } from './models/message-types.enum';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [
-    RouterOutlet,
-    NgxAgentTaskflowWrapperComponent,
-    CommonModule,
-    CustomMessageComponent,
-    CustomProgressComponent,
-  ],
+  imports: [NgxAgentTaskflowWrapperComponent, CommonModule],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.css',
 })
 export class AppComponent implements OnInit {
   title = 'demo';
@@ -34,14 +22,13 @@ export class AppComponent implements OnInit {
 
   // Define component map for different TaskData types
   componentMap: ComponentMap = {
-    text: CustomMessageComponent,
+    message: CustomMessageComponent,
     progress: CustomProgressComponent,
   };
 
-  constructor(
-    private taskListStore: TaskListStore,
-    private taskService: TaskService
-  ) {}
+  private readonly http = inject(HttpClient);
+  private readonly taskListStore = inject(TaskListStore);
+  private readonly taskService = inject(TaskService);
 
   ngOnInit() {
     // Initialize the TaskListStore with callbacks to our TaskService
@@ -70,35 +57,22 @@ export class AppComponent implements OnInit {
     }, 1000);
   }
 
-  // Method to create a new sample task
-  createSampleTask() {
-    const taskId = uuidv4();
-    const newTask: Task = {
-      id: taskId,
-      status: TaskStatus.STARTING,
-      data: [
-        {
-          type: 'text',
-          content: 'This is a sample task created from the demo app',
-          observation: 'Created manually',
-        },
-      ],
-    };
-
-    this.taskListStore.addTask(newTask);
-  }
-
   // Method to create and connect a task to an observable
   createConnectedTask() {
     const taskId = uuidv4();
-    const newTask: Task = {
+    const newTask: Task<MessageTypes, any> = {
       id: taskId,
       status: TaskStatus.STARTING,
       data: [
         {
-          type: 'text',
+          type: MessageTypes.MESSAGE,
           content: 'This task will be connected to a simulated API call',
           observation: 'Initializing...',
+        },
+        {
+          type: MessageTypes.CUSTOM,
+          content: 'Progress',
+          observation: { progress: 0 },
         },
       ],
     };
@@ -106,46 +80,82 @@ export class AppComponent implements OnInit {
     // First add the task
     this.taskListStore.addTask(newTask);
 
+    // Setup SSE connection instead of regular HTTP request
+    this.http
+      .post(
+        'http://localhost:3000/agent/chat',
+        {
+          message: 'Hello, how are you?,dame 10 tenders',
+        },
+        {
+          responseType: 'text', // Handle as text instead of JSON
+          observe: 'response', // Get the full response to check headers
+        },
+      )
+      .subscribe({
+        next: (response) => {
+          if (response.body) {
+            // Parse SSE data manually
+            const events = response.body.split('\n\n');
+            events.forEach((event) => {
+              if (event.startsWith('data: ')) {
+                try {
+                  const jsonData = JSON.parse(event.substring(6));
+                  console.log('SSE data:', jsonData);
+                  // Process the SSE data as needed
+                } catch (e) {
+                  console.log('Error parsing SSE data:', e);
+                }
+              }
+            });
+          }
+        },
+        error: (err) => console.error('Error with SSE request:', err),
+      });
+
     // Simulate an API call with multiple updates
     const observable = new Observable<any>((observer) => {
       setTimeout(() => {
-        observer.next({ message: 'Step 1 completed', progress: 25 });
+        observer.next({
+          type: 'progress',
+          content: 'Step 1 completed',
+          observation: { progress: 25 },
+        });
       }, 1000);
 
       setTimeout(() => {
-        observer.next({ message: 'Step 2 completed', progress: 50 });
+        observer.next({
+          type: 'progress',
+          content: 'Step 2 completed',
+          observation: { progress: 50 },
+        });
       }, 2000);
 
       setTimeout(() => {
-        observer.next({ message: 'Step 3 completed', progress: 75 });
+        observer.next({
+          type: 'progress',
+          content: 'Step 3 completed',
+          observation: { progress: 75 },
+        });
       }, 3000);
 
       setTimeout(() => {
-        observer.next({ message: 'Process completed', progress: 100 });
+        observer.next({
+          type: 'progress',
+          content: 'Process completed',
+          observation: { progress: 100 },
+        });
         observer.complete();
       }, 4000);
     });
 
     // Connect the task to the observable
-    this.taskListStore.connectTaskObservable(
-      taskId,
-      observable,
-      (data) => {
-        // Map data to status
-        return data.progress === 100 ? TaskStatus.DONE : TaskStatus.PROCESSING;
-      },
-      (data) => {
-        // Map data to TaskData
-        return {
-          type: 'progress',
-          content: `Progress: ${data.progress}%`,
-          observation: data.message,
-        };
-      }
-    );
+    this.taskListStore.connectTaskObservable(taskId, observable);
   }
 
   clearAllTasks() {
-    this.taskListStore.setAllTasks([]);
+    this.taskListStore.entities().forEach((task) => {
+      this.taskListStore.removeTask(task.id);
+    });
   }
 }

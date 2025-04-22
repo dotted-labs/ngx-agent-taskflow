@@ -1,19 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import {
-  patchState,
-  signalStore,
-  withHooks,
-  withMethods,
-  withState,
-} from '@ngrx/signals';
-import {
-  EntityId,
-  addEntity,
-  removeEntity,
-  setAllEntities,
-  updateEntity,
-  withEntities,
-} from '@ngrx/signals/entities';
+import { patchState, signalStore, withHooks, withMethods, withState } from '@ngrx/signals';
+import { EntityId, addEntity, removeEntity, setAllEntities, updateEntity, withEntities } from '@ngrx/signals/entities';
 import { Observable, Subscription, takeUntil } from 'rxjs';
 
 import { Task } from './models/task.interface';
@@ -22,10 +9,10 @@ import { TaskData } from './models/task-data.interface';
 
 // Define callback interfaces for database operations
 export interface TaskCallbacks {
-  onTaskCreate?: (task: Task) => void;
-  onTaskUpdate?: (taskId: string, changes: Partial<Task>) => void;
+  onTaskCreate?: (task: Task<string, any>) => void;
+  onTaskUpdate?: (taskId: string, changes: Partial<Task<string, any>>) => void;
   onTaskDelete?: (taskId: string) => void;
-  onTasksLoad?: () => Observable<Task[]>;
+  onTasksLoad?: () => Observable<Task<string, any>[]>;
 }
 
 // Define state interface for additional state properties
@@ -44,9 +31,9 @@ const initialState: TaskListStateProps = {
 @Injectable({
   providedIn: 'root',
 })
-export class TaskListStore extends signalStore(
+export class TaskListStore<T extends string, U> extends signalStore(
   // Using withEntities for Task management
-  withEntities<Task>(),
+  withEntities<Task<string, any>>(),
   // Additional state properties
   withState<TaskListStateProps>(initialState),
   withMethods((store) => {
@@ -75,7 +62,7 @@ export class TaskListStore extends signalStore(
           patchState(store, { isLoading: true });
 
           storeCallbacks.onTasksLoad().subscribe({
-            next: (tasks: Task[]) => {
+            next: (tasks: Task<string, any>[]) => {
               this.setAllTasks(tasks);
               patchState(store, { isLoading: false });
             },
@@ -90,7 +77,7 @@ export class TaskListStore extends signalStore(
       /**
        * Add a new task to the store
        */
-      addTask(task: Task) {
+      addTask(task: Task<string, any>) {
         patchState(store, addEntity(task));
 
         // Call onTaskCreate callback if provided
@@ -102,7 +89,7 @@ export class TaskListStore extends signalStore(
       /**
        * Add multiple tasks to the store
        */
-      addTasks(tasks: Task[]) {
+      addTasks(tasks: Task<string, any>[]) {
         // Add each task individually
         tasks.forEach((task) => {
           patchState(store, addEntity(task));
@@ -117,7 +104,7 @@ export class TaskListStore extends signalStore(
       /**
        * Set all tasks in the store (replaces existing tasks)
        */
-      setAllTasks(tasks: Task[]) {
+      setAllTasks(tasks: Task<string, any>[]) {
         patchState(store, setAllEntities(tasks));
       },
 
@@ -142,7 +129,7 @@ export class TaskListStore extends signalStore(
           updateEntity({
             id: taskId,
             changes: { status },
-          })
+          }),
         );
 
         // Call onTaskUpdate callback if provided
@@ -154,7 +141,7 @@ export class TaskListStore extends signalStore(
       /**
        * Add data to a task
        */
-      addTaskData(taskId: string, newData: TaskData) {
+      addTaskData(taskId: string, newData: TaskData<string, any>) {
         // Get the current task - use entityMap to access by ID
         const entityMap = store.entityMap();
         const task = entityMap[taskId];
@@ -169,7 +156,7 @@ export class TaskListStore extends signalStore(
               changes: {
                 data: updatedData,
               },
-            })
+            }),
           );
 
           // Call onTaskUpdate callback if provided
@@ -193,46 +180,40 @@ export class TaskListStore extends signalStore(
       connectTaskObservable(
         taskId: string,
         observable: Observable<any>,
-        statusMapper: (data: any) => TaskStatus,
-        dataMapper: (data: any) => TaskData,
-        notifier?: Observable<any>
+        dataMapper: (data: any) => TaskData<string, any> = (data) => data,
+        notifier?: Observable<any>,
       ): Subscription {
         // Mark task as processing
         this.updateTaskStatus(taskId, TaskStatus.PROCESSING);
 
         // Subscribe to the observable
-        return observable
-          .pipe(notifier ? takeUntil(notifier) : (source) => source)
-          .subscribe({
-            next: (data) => {
-              // Update task status
-              const newStatus = statusMapper(data);
-              this.updateTaskStatus(taskId, newStatus);
+        return observable.pipe(notifier ? takeUntil(notifier) : (source) => source).subscribe({
+          next: (data) => {
+            // Add new data to the task
+            const newTaskData = dataMapper(data);
+            this.addTaskData(taskId, newTaskData);
+          },
+          error: (error) => {
+            // Mark task as failed
+            this.updateTaskStatus(taskId, TaskStatus.FAILED);
 
-              // Add new data to the task
-              const newTaskData = dataMapper(data);
-              this.addTaskData(taskId, newTaskData);
-            },
-            error: (error) => {
-              // Mark task as failed
-              this.updateTaskStatus(taskId, TaskStatus.FAILED);
+            // Add error information to task data
+            this.addTaskData(taskId, {
+              type: 'error',
+              content: error.message || 'Unknown error',
+              observation: 'Task failed due to an error',
+            });
+          },
+          complete: () => {
+            // Mark task as done when observable completes
 
-              // Add error information to task data
-              this.addTaskData(taskId, {
-                type: 'error',
-                content: error.message || 'Unknown error',
-                observation: 'Task failed due to an error',
-              });
-            },
-            complete: () => {
-              // Mark task as done when observable completes
-              const entityMap = store.entityMap();
-              const task = entityMap[taskId];
-              if (task && task.status !== TaskStatus.FAILED) {
-                this.updateTaskStatus(taskId, TaskStatus.DONE);
-              }
-            },
-          });
+            const entityMap = store.entityMap();
+            const task = entityMap[taskId];
+            if (task && task.status !== TaskStatus.FAILED) {
+              this.updateTaskStatus(taskId, TaskStatus.DONE);
+            }
+          },
+        });
       },
     };
   }),
@@ -240,5 +221,5 @@ export class TaskListStore extends signalStore(
     onInit: () => {
       // Initialization logic if needed
     },
-  })
+  }),
 ) {}

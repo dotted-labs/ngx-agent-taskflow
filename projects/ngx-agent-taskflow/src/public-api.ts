@@ -4,8 +4,10 @@
 
 // Export store
 export * from './lib/store';
+export * from './lib/store/models/task-data.interface';
 
 // Export components
 export * from './lib/taskflow-wrapper/ngx-agent-taskflow-wrapper.component';
 export * from './lib/taskflow-wrapper/task-tabs/task-tabs.component';
 export * from './lib/taskflow-wrapper/task-item/task-item.component';
+export * from './lib/taskflow-wrapper/message.directive';

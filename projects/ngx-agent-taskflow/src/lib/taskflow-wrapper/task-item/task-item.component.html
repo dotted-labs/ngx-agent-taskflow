@@ -1,37 +1,23 @@
 <div class="task-item mb-4">
-  <div
-    class="flex px-4 justify-between items-center mb-3 pb-2 border-b border-gray-100"
-  >
-    <div class="text-sm text-gray-500">
-      ID: <span class="font-mono">{{ task.id }}</span>
-    </div>
-    <div
-      class="px-3 py-1 rounded-full text-sm font-medium"
-      [ngClass]="{
-        'bg-blue-100 text-blue-800': task.status === 'starting',
-        'bg-yellow-100 text-yellow-800': task.status === 'processing',
-        'bg-green-100 text-green-800': task.status === 'done',
-        'bg-red-100 text-red-800': task.status === 'failed'
-      }"
-    >
-      {{ task.status }}
-    </div>
-  </div>
-
   @if (task.data.length > 0) {
-  <div class="task-data">
-    <ul class="space-y-3">
-      @for (item of task.data; track item) {
-      <li>
-        <ng-container
-          *ngComponentOutlet="
-            getComponentForItem(item.type);
-            inputs: { item: item }
-          "
-        ></ng-container>
-      </li>
-      }
-    </ul>
-  </div>
+    <div class="task-data">
+      <ul class=" ">
+        @for (item of task.data; track item) {
+          <li class="p-3 border-b border-gray-200">
+            <ng-container *ngComponentOutlet="getComponentForItem(item.type); inputs: { item: item }"></ng-container>
+          </li>
+        }
+        @if (task.status === 'processing') {
+          <li class="p-3">
+            <span class="text-pink-500 font-semibold text-xs rounded-full bg-pink-100 px-3 py-1">🧠 Pensando... </span>
+          </li>
+        }
+        @if (task.status === 'done') {
+          <li class="p-3">
+            <span class="text-green-500 font-semibold text-xs rounded-full bg-green-100 px-3 py-1">👌 Finalizado </span>
+          </li>
+        }
+      </ul>
+    </div>
   }
 </div>

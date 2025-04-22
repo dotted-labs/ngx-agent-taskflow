@@ -11,7 +11,7 @@ import { ComponentMap } from '../../store/models/component-map.interface';
   templateUrl: './task-tabs.component.html',
 })
 export class TaskTabsComponent {
-  @Input() tasks: Task[] = [];
+  @Input() tasks: Task<string, any>[] = [];
   @Input() componentMap: ComponentMap = {};
 
   // Currently selected tab index
@@ -31,7 +31,7 @@ export class TaskTabsComponent {
       },
       {
         allowSignalWrites: true,
-      }
+      },
     );
   }
 

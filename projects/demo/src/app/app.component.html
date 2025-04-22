@@ -1,28 +1,12 @@
 <div class="flex h-screen flex-col p-4 gap-4 items-center">
   <div class="flex justify-center gap-4 mb-4">
-    <button
-      class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-      (click)="createSampleTask()"
-    >
-      Create Sample Task
-    </button>
-    <button
-      class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-      (click)="createConnectedTask()"
-    >
+    <button class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600" (click)="createConnectedTask()">
       Create Connected Task
     </button>
-    <button
-      class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-      (click)="clearAllTasks()"
-    >
-      Clear All Tasks
-    </button>
+    <button class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600" (click)="clearAllTasks()">Clear All Tasks</button>
   </div>
 
-  <div
-    class="border-2 border-gray-300 rounded-lg h-[500px] w-[500px] overflow-hidden"
-  >
+  <div class="border-2 border-gray-300 rounded-lg h-[500px] w-[500px] overflow-hidden">
     <ngx-agent-taskflow-wrapper [componentMap]="componentMap" />
   </div>
 </div>

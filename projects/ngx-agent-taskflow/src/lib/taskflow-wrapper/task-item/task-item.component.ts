@@ -11,7 +11,7 @@ import { ComponentMap } from '../../store/models/component-map.interface';
   templateUrl: './task-item.component.html',
 })
 export class TaskItemComponent {
-  @Input() task!: Task;
+  @Input() task!: Task<string, any>;
   @Input() isActive = false;
   @Input() componentMap: ComponentMap = {};
 

@@ -11,7 +11,7 @@ export function generateTaskId(): string {
 /**
  * Creates a new task with the given initial data
  */
-export function createTask(initialData: Partial<Task> = {}): Task {
+export function createTask<T extends string, U>(initialData: Partial<Task<T, U>> = {}): Task<T, U> {
   return {
     id: initialData.id || generateTaskId(),
     status: initialData.status || TaskStatus.STARTING,

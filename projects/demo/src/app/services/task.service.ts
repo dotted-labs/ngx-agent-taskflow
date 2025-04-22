@@ -11,7 +11,7 @@ export class TaskService {
   constructor() {
     // Initialize localStorage with sample tasks if empty
     if (!localStorage.getItem(this.STORAGE_KEY)) {
-      const initialTasks: Task[] = [
+      const initialTasks: Task<string, any>[] = [
         {
           id: '1',
           status: TaskStatus.DONE,
@@ -29,14 +29,14 @@ export class TaskService {
   }
 
   // Get all tasks from localStorage
-  getTasks(): Observable<Task[]> {
+  getTasks(): Observable<Task<string, any>[]> {
     const tasks = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '[]');
     // Simulate API delay
     return of(tasks).pipe(delay(500));
   }
 
   // Create a new task in localStorage
-  createTask(task: Task): Observable<Task> {
+  createTask(task: Task<string, any>): Observable<Task<string, any>> {
     const tasks = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '[]');
     tasks.push(task);
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(tasks));
@@ -45,9 +45,9 @@ export class TaskService {
   }
 
   // Update a task in localStorage
-  updateTask(taskId: string, changes: Partial<Task>): Observable<Task> {
+  updateTask(taskId: string, changes: Partial<Task<string, any>>): Observable<Task<string, any>> {
     const tasks = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '[]');
-    const taskIndex = tasks.findIndex((t: Task) => t.id === taskId);
+    const taskIndex = tasks.findIndex((t: Task<string, any>) => t.id === taskId);
 
     if (taskIndex !== -1) {
       tasks[taskIndex] = { ...tasks[taskIndex], ...changes };
@@ -62,7 +62,7 @@ export class TaskService {
   // Delete a task from localStorage
   deleteTask(taskId: string): Observable<boolean> {
     const tasks = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '[]');
-    const filteredTasks = tasks.filter((t: Task) => t.id !== taskId);
+    const filteredTasks = tasks.filter((t: Task<string, any>) => t.id !== taskId);
 
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filteredTasks));
     console.log('Task deleted:', taskId);

@@ -1,5 +1,5 @@
-export interface TaskData {
-  content?: string;
-  observation?: string;
-  type?: 'message' | 'tool_1' | 'tool_2' | string;
+export interface TaskData<TypeEnum extends string, T> {
+  type: TypeEnum;
+  content: string;
+  observation?: T;
 }
