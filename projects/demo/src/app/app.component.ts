@@ -1,67 +1,52 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
-import { ComponentMap, NgxAgentTaskflowWrapperComponent, TaskListStore, Task } from '@dotted-labs/ngx-agent-taskflow';
-import { CustomProgressComponent } from './custom-progress/custom-progress.component';
-import { TaskService } from './services/task.service';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChatAgentComponent, ComponentMap, TaskListStore } from '@dotted-labs/ngx-chat-agent';
+import { MessageTableComponent } from './components/message-table/message-table.component';
 import { CustomTaskMessageTypes } from './models/message-types.enum';
+import { TaskService } from './services/task.service';
 
 @Component({
   selector: 'app-root',
-  imports: [NgxAgentTaskflowWrapperComponent, CommonModule],
+  imports: [ChatAgentComponent, CommonModule],
   template: `
     <div class="flex h-screen flex-col p-4 gap-4 items-center">
       <div class="  w-[500px] overflow-hidden flex justify-center gap-4 p-4">
         <button class="btn btn-sm btn-primary" (click)="createTask(true)">Create Task</button>
-        <button class="btn btn-sm btn-primary" (click)="createTask(false)">Create Real Task</button>
-        <button class="btn btn-sm btn-error" (click)="clearAllTasks()">Clear All Tasks</button>
+        <button class="btn btn-sm btn-error" (click)="taskListStore.removeAllTasks()">Clear All Tasks</button>
       </div>
 
       <div class="border border-base-300 rounded-2xl h-[500px] w-[500px] overflow-hidden">
-        <ngx-agent-taskflow-wrapper [componentMap]="componentMap" />
+        <ngx-chat-agent [componentMap]="componentMap" />
       </div>
     </div>
   `,
 })
 export class AppComponent implements OnInit {
-  private readonly taskListStore = inject(TaskListStore);
   private readonly taskService = inject(TaskService);
-
-  // Define component map for different TaskData types
-  public componentMap: ComponentMap = {
-    progress: CustomProgressComponent,
+  private readonly taskNumber = signal(0);
+  public readonly taskListStore = inject(TaskListStore);
+  public readonly componentMap: ComponentMap = {
+    [CustomTaskMessageTypes.TOOL_TABLE]: MessageTableComponent,
   };
 
-  ngOnInit() {
+  public ngOnInit() {
     this.taskListStore.init<CustomTaskMessageTypes>({
       globalContextPrompt: 'You are a helpful assistant that can answer questions and help with tasks.',
-      saveInLocalStorage: true,
-      saveInLocalStorageKey: 'demo_tasks',
       callbacks: {
-        onTaskCreate: (task) => this.taskService.createTask(task),
-        onTaskUpdate: (taskId, changes) => this.taskService.updateTask(taskId, changes),
-        onTaskDelete: (taskId) => this.taskService.deleteTask(taskId),
-        onTasksLoad: () => this.taskService.getTasks(),
+        onTaskCreate: (task) => console.log('onTaskCreate', task),
+        onTaskUpdate: (taskId, changes) => console.log('onTaskUpdate', taskId, changes),
+        onTaskDelete: (taskId) => console.log('onTaskDelete', taskId),
+        onTasksLoad: () => console.log('onTasksLoad'),
         onUserMessage: (taskId: string, message: string) =>
-          this.taskListStore.connectTaskObservable(taskId, this.taskService.chatWithAgent(message)),
+          this.taskListStore.connectTaskObservable<CustomTaskMessageTypes, any>(taskId, this.taskService.chatWithFakeAgent()),
       },
     });
   }
 
-  public createTask(demo = false) {
-    const task = this.taskListStore.createTask<CustomTaskMessageTypes>();
+  public async createTask(demo = false) {
+    const task = await this.taskListStore.createTask<CustomTaskMessageTypes>(`Task ${this.taskNumber()}`);
 
-    if (demo) {
-      this.taskListStore.connectTaskObservable<CustomTaskMessageTypes, any>(task.id, this.taskService.chatWithFakeAgent());
-    } else {
-      this.taskListStore.connectTaskObservable<CustomTaskMessageTypes, any>(task.id, this.taskService.chatWithAgent('Hello, how are you?'));
-    }
-  }
-
-  public clearAllTasks() {
-    this.taskService.getTasks().subscribe((tasks) => {
-      tasks.forEach((task) => {
-        this.taskListStore.removeTask(task.id);
-      });
-    });
+    this.taskNumber.update((prev) => prev + 1);
+    this.taskListStore.connectTaskObservable<CustomTaskMessageTypes, any>(task.id, this.taskService.chatWithFakeAgent());
   }
 }

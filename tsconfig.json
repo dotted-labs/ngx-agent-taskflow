@@ -10,9 +10,7 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@dotted-labs/ngx-agent-taskflow": [
-        "./projects/ngx-agent-taskflow/src/public-api.ts"
-      ]
+      "@dotted-labs/ngx-chat-agent": ["./projects/ngx-chat-agent/src/public-api.ts"]
     },
     "skipLibCheck": true,
     "isolatedModules": true,

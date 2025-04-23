@@ -1,3 +1,3 @@
 export enum CustomTaskMessageTypes {
-  PROGRESS = 'progress',
+  TOOL_TABLE = 'tool_table',
 }
