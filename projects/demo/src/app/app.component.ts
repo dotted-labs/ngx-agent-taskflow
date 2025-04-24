@@ -4,7 +4,7 @@ import { ChatAgentComponent, ComponentMap, TaskListStore } from '@dotted-labs/ng
 import { MessageTableComponent } from './components/message-table/message-table.component';
 import { CustomTaskMessageTypes } from './models/message-types.enum';
 import { TaskService } from './services/task.service';
-
+import { AgentService } from './services/agent.service';
 @Component({
   selector: 'app-root',
   imports: [ChatAgentComponent, CommonModule],
@@ -22,6 +22,7 @@ import { TaskService } from './services/task.service';
   `,
 })
 export class AppComponent implements OnInit {
+  private readonly agentService = inject(AgentService);
   private readonly taskService = inject(TaskService);
   private readonly taskNumber = signal(0);
   public readonly taskListStore = inject(TaskListStore);
@@ -38,7 +39,7 @@ export class AppComponent implements OnInit {
         onTaskDelete: (taskId) => console.log('onTaskDelete', taskId),
         onTasksLoad: () => console.log('onTasksLoad'),
         onUserMessage: (taskId: string, message: string) =>
-          this.taskListStore.connectTaskObservable<CustomTaskMessageTypes, any>(taskId, this.taskService.chatWithFakeAgent()),
+          this.taskListStore.chatWithAgent(this.agentService.chat(message, taskId), taskId, message),
       },
     });
   }
@@ -47,6 +48,6 @@ export class AppComponent implements OnInit {
     const task = await this.taskListStore.createTask<CustomTaskMessageTypes>(`Task ${this.taskNumber()}`);
 
     this.taskNumber.update((prev) => prev + 1);
-    this.taskListStore.connectTaskObservable<CustomTaskMessageTypes, any>(task.id, this.taskService.chatWithFakeAgent());
+    this.taskListStore.chatWithAgent(this.agentService.chat('hi agent!', task.id), task.id, 'hi agent!');
   }
 }

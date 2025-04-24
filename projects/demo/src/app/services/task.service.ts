@@ -3,12 +3,14 @@ import { inject, Injectable } from '@angular/core';
 import { TaskData, TaskMessageTypes } from '@dotted-labs/ngx-chat-agent';
 import { EMPTY, from, mergeMap, Observable } from 'rxjs';
 import { CustomTaskMessageTypes } from '../models/message-types.enum';
+import { SseClient } from 'ngx-sse-client';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TaskService {
   private readonly http = inject(HttpClient);
+  private readonly sseClient: SseClient = inject(SseClient);
 
   public chatWithFakeAgent(): Observable<TaskData<CustomTaskMessageTypes, any>> {
     return new Observable<TaskData<CustomTaskMessageTypes, any>>((subscriber) => {

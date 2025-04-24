@@ -193,13 +193,16 @@ export class TaskListStore extends signalStore(
           }),
         );
 
+        const entityMap = store.entityMap();
+        const task = entityMap[taskId];
+
         // Call onTaskUpdate callback if provided
         if (storeCallbacks.onTaskUpdate) {
-          storeCallbacks.onTaskUpdate(taskId, { status });
+          storeCallbacks.onTaskUpdate(taskId, { ...task });
         }
 
         if (store.saveInLocalStorage()) {
-          await taskService.updateTask(taskId, { status });
+          await taskService.updateTask(taskId, { ...task });
         }
       },
 
@@ -221,9 +224,9 @@ export class TaskListStore extends signalStore(
           storeCallbacks.onUserMessage(taskId, messageContent);
         }
 
-        if (store.saveInLocalStorage()) {
-          await taskService.updateTask(taskId, messageContent as any);
-        }
+        // if (store.saveInLocalStorage()) {
+        //   await taskService.updateTask(taskId, messageContent as any);
+        // }
       },
 
       /**
@@ -277,14 +280,14 @@ export class TaskListStore extends signalStore(
             );
           }
 
-          // Call onTaskUpdate callback if provided
-          if (storeCallbacks.onTaskUpdate) {
-            storeCallbacks.onTaskUpdate(taskId, { messages: updatedMessages } as any);
-          }
+          // // Call onTaskUpdate callback if provided
+          // if (storeCallbacks.onTaskUpdate) {
+          //   storeCallbacks.onTaskUpdate(taskId, { messages: updatedMessages } as any);
+          // }
 
-          if (store.saveInLocalStorage()) {
-            await taskService.updateTask(taskId, { messages: updatedMessages } as any);
-          }
+          // if (store.saveInLocalStorage()) {
+          //   await taskService.updateTask(taskId, { messages: updatedMessages } as any);
+          // }
         }
       },
 
@@ -304,48 +307,120 @@ export class TaskListStore extends signalStore(
         });
       },
 
-      /**
-       * Connect an observable to update a task
-       * @returns Subscription that should be unsubscribed when no longer needed
-       */
-      connectTaskObservable<T, U>(
+      getLatestTaskDataMessage(taskId: string): TaskData<any, any> | null {
+        const entityMap = store.entityMap();
+        const task = entityMap[taskId];
+        if (task) {
+          return task.messages[task.messages.length - 1].data[task.messages[task.messages.length - 1].data.length - 1];
+        }
+        return null;
+      },
+
+      appendLatestTaskDataMessage(taskId: string, data: string) {
+        const entityMap = store.entityMap();
+        const task = entityMap[taskId];
+        if (task) {
+          const lastMessage = task.messages[task.messages.length - 1];
+          if (lastMessage) {
+            lastMessage.data[lastMessage.data.length - 1] = {
+              ...lastMessage.data[lastMessage.data.length - 1],
+              content: lastMessage.data[lastMessage.data.length - 1].content + data,
+            };
+          }
+        }
+      },
+
+      chatWithAgent<T, U>(
+        agentStream: Observable<any>,
         taskId: string,
-        observable: Observable<any>,
-        sender: TaskMessageSender = TaskMessageSender.ASSISTANT,
-        dataMapper: (data: any) => TaskData<T, U> = (data) => data,
+        message: string = 'Como estas? dame 5 personas aleatorias',
       ): Subscription {
         // Mark task as processing
         this.updateTaskStatus(taskId, TaskStatus.PROCESSING);
+        const observable = agentStream.subscribe((event: any) => {
+          const type = event.type;
+          const data = event.data;
 
-        // Subscribe to the observable
-        return observable.subscribe({
-          next: (data) => {
-            console.log('data', data);
-            // Add new data to the task as a message
-            const newTaskData = dataMapper(data);
-            this.addTaskMessage(taskId, sender, newTaskData);
-          },
-          error: (error) => {
-            // Mark task as failed
-            this.updateTaskStatus(taskId, TaskStatus.FAILED);
+          console.info(`SSE request with type "${type}" and data "${data}"`);
 
-            // Add error information to task data
-            this.addTaskMessage(taskId, TaskMessageSender.ASSISTANT, {
-              type: TaskMessageTypes.ERROR as any,
-              content: error.message || 'Unknown error',
-              observation: 'Task failed due to an error',
-            });
-          },
-          complete: () => {
-            // Mark task as done when observable completes
-            const entityMap = store.entityMap();
-            const task = entityMap[taskId];
-            if (task && task.status !== TaskStatus.FAILED) {
-              this.updateTaskStatus(taskId, TaskStatus.DONE);
-            }
-          },
+          switch (type) {
+            case 'error':
+              this.updateTaskStatus(taskId, TaskStatus.FAILED);
+
+              // Add error information to task data
+              this.addTaskMessage(taskId, TaskMessageSender.ASSISTANT, {
+                type: TaskMessageTypes.ERROR as any,
+                content: data.message || 'Unknown error',
+                observation: 'Task failed due to an error',
+              });
+              break;
+            case 'message':
+              const latestTaskDataMessage = this.getLatestTaskDataMessage(taskId);
+              if (latestTaskDataMessage?.type !== TaskMessageTypes.MESSAGE) {
+                this.addTaskMessage(taskId, TaskMessageSender.ASSISTANT, {
+                  type: TaskMessageTypes.MESSAGE,
+                  content: data,
+                });
+              } else {
+                this.appendLatestTaskDataMessage(taskId, data);
+              }
+              break;
+            case 'tool':
+              const toolName = JSON.parse(data).kwargs.name;
+              const toolContent = JSON.parse(data).kwargs.content;
+
+              this.addTaskMessage(taskId, TaskMessageSender.ASSISTANT, {
+                type: TaskMessageTypes.TOOL,
+                content: toolName,
+                observation: toolContent,
+              });
+              break;
+            case 'done':
+              const entityMap = store.entityMap();
+              const task = entityMap[taskId];
+              if (task && task.status !== TaskStatus.FAILED) {
+                this.updateTaskStatus(taskId, TaskStatus.DONE);
+              }
+              observable.unsubscribe();
+              break;
+            case 'tool_start':
+              break;
+            default:
+              break;
+          }
         });
+
+        return observable;
+
+        // .subscribe({
+        //   next: (data) => {
+        //     console.log('data', data);
+        //     // Add new data to the task as a message
+        //     const newTaskData = dataMapper(data);
+        //     this.addTaskMessage(taskId, sender, newTaskData);
+        //   },
+        //   error: (error) => {
+        //     // Mark task as failed
+        //     this.updateTaskStatus(taskId, TaskStatus.FAILED);
+
+        //     // Add error information to task data
+        //     this.addTaskMessage(taskId, TaskMessageSender.ASSISTANT, {
+        //       type: TaskMessageTypes.ERROR as any,
+        //       content: error.message || 'Unknown error',
+        //       observation: 'Task failed due to an error',
+        //     });
+        //   },
+        //   complete: () => {
+        //     // Mark task as done when observable completes
+        //     const entityMap = store.entityMap();
+        //     const task = entityMap[taskId];
+        //     if (task && task.status !== TaskStatus.FAILED) {
+        //       this.updateTaskStatus(taskId, TaskStatus.DONE);
+        //     }
+        //   },
+        // });
       },
+
       selectTab(tabIndex: number) {
         patchState(store, { selectedTabIndex: tabIndex });
       },

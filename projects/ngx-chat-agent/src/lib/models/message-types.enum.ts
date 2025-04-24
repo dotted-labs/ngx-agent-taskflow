@@ -5,4 +5,5 @@ export enum TaskMessageTypes {
   ERROR = 'error',
   THINK = 'think',
   USER = 'user',
+  TOOL = 'tool',
 }
