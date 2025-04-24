@@ -13,6 +13,7 @@ This project provides an Angular chat component (`ngx-chat-agent`) designed to i
 - Manage the state of tasks and messages reactively.
 - Customize the appearance and behavior of message components.
 - Easily integrate with backend services that communicate with language models (LLMs).
+- Support real-time streaming responses via Server-Sent Events (SSE).
 
 ## Installation
 
@@ -23,6 +24,8 @@ npm install @dotted-labs/ngx-chat-agent
 ```
 
 Also ensure you have the necessary peer dependencies installed (Angular, RxJS, etc.).
+
+The library uses `ngx-sse-client` for Server-Sent Events integration. It should be installed automatically as a dependency.
 
 ## How to use it?
 
@@ -47,14 +50,14 @@ Also ensure you have the necessary peer dependencies installed (Angular, RxJS, e
     ```typescript
     import { Component, OnInit, inject } from '@angular/core';
     import { TaskListStore, ComponentMap } from '@dotted-labs/ngx-chat-agent';
-    import { MyTaskService } from './my-task.service'; // Your service to talk to the AI
+    import { AgentService } from './services/agent.service'; // Your service to talk to the AI
 
     @Component({
       /* ... */
     })
     export class MyChatComponent implements OnInit {
       private readonly taskListStore = inject(TaskListStore);
-      private readonly myTaskService = inject(MyTaskService); // Your service
+      private readonly agentService = inject(AgentService); // Your service
 
       // Optional: Map for custom components (see extension section)
       public readonly componentMap: ComponentMap = {
@@ -67,8 +70,8 @@ Also ensure you have the necessary peer dependencies installed (Angular, RxJS, e
           callbacks: {
             onUserMessage: (taskId: string, message: string) => {
               // Connect the user's response to your AI service
-              const agentResponse$ = this.myTaskService.sendMessageToAgent(taskId, message);
-              this.taskListStore.connectTaskObservable(taskId, agentResponse$);
+              const agentStream = this.agentService.chat(message, taskId);
+              this.taskListStore.chatWithAgent(agentStream, taskId, message);
             },
             // Implement other callbacks as needed (onTaskCreate, onTaskUpdate, etc.)
             onTaskCreate: (task) => console.log('Task created:', task),
@@ -79,12 +82,37 @@ Also ensure you have the necessary peer dependencies installed (Angular, RxJS, e
       // Logic to create tasks
       async createNewTask() {
         const task = await this.taskListStore.createTask('New task name');
-        // Optionally, you can send an initial message or connect an observable immediately
+        // Optionally, you can start a conversation immediately
+        const agentStream = this.agentService.chat('Initial message', task.id);
+        this.taskListStore.chatWithAgent(agentStream, task.id, 'Initial message');
       }
     }
     ```
 
-3.  **Agent Service (`MyTaskService`):** You need to create a service that handles communication with your backend or directly with the LLM API. This service must return an `Observable<TaskMessage>` that emits the agent's messages (thinking, context, tool result, final response, etc.). `connectTaskObservable` will subscribe to this observable.
+3.  **Agent Service:** You need to create a service that handles communication with your backend using Server-Sent Events. Here's an example:
+
+    ```typescript
+    import { Injectable } from '@angular/core';
+    import { SseClient } from 'ngx-sse-client';
+
+    @Injectable({
+      providedIn: 'root',
+    })
+    export class AgentService {
+      constructor(private sseClient: SseClient) {}
+
+      public chat(message: string, threadId: string) {
+        return this.sseClient.stream(
+          `http://your-backend-url/agent/chat?message=${message}&threadId=${threadId}`,
+          { keepAlive: true, reconnectionDelay: 100_000, responseType: 'event' },
+          { headers: {} },
+          'GET',
+        );
+      }
+    }
+    ```
+
+    The `chatWithAgent` method expects a stream of SSE events with types like 'message', 'tool', 'error', and 'done'.
 
 ## Data Structures
 
@@ -103,12 +131,21 @@ The library primarily works with two main data structures defined in `@dotted-la
     - `sender: TaskMessageSender`: Indicates who sent the message (`USER`, `ASSISTANT`, or `SYSTEM`).
     - `data: TaskData<TypeEnum, ObservationType>[]`: An array containing the actual content pieces of the message turn.
 
-3.  **`TaskData<TypeEnum, ObservationType>`**: This is the core structure that your agent service observable (connected via `connectTaskObservable`) needs to emit. Each emitted `TaskData` object represents a piece of information from the assistant's turn.
-    - `type: TypeEnum | TaskMessageTypes`: Specifies the kind of data. It can be a standard type (`TaskMessageTypes.THINK`, `TaskMessageTypes.CONTEXT`, `TaskMessageTypes.DONE`, etc.) or a custom type you define (e.g., `CustomTaskMessageTypes.TOOL_TABLE`).
-    - `content: string`: The main content for this data piece. For standard types like `THINK` or `DONE`, this is typically text. For tool messages, it might be a stringified representation or identifier for the tool's action/result.
+3.  **`TaskData<TypeEnum, ObservationType>`**: This is the core structure that represents a piece of information in the conversation.
+    - `type: TypeEnum | TaskMessageTypes`: Specifies the kind of data. It can be a standard type (`TaskMessageTypes.THINK`, `TaskMessageTypes.CONTEXT`, `TaskMessageTypes.MESSAGE`, `TaskMessageTypes.TOOL`, etc.) or a custom type you define (e.g., `CustomTaskMessageTypes.TOOL_TABLE`).
+    - `content: string`: The main content for this data piece. For standard types like `THINK` or `MESSAGE`, this is typically text. For tool messages, it might be a stringified representation or identifier for the tool's action/result.
     - `observation?: ObservationType`: Optional structured data associated with this piece, useful for custom components that need more than just string content.
 
-When your service emits `TaskData` objects, the `TaskListStore` automatically groups them under a `TaskMessage` with the `sender` set to `ASSISTANT`.
+The `chatWithAgent` method processes SSE events and automatically creates the appropriate message structure based on event types.
+
+## SSE Event Types
+
+The `chatWithAgent` method handles the following event types:
+
+- **message**: Text content from the agent, typically showing the thinking or final response.
+- **tool**: Tool usage information, with name and content data.
+- **error**: Error messages when something goes wrong.
+- **done**: Signals the completion of the agent's response.
 
 ## Extension and Customization (Components for Tools)
 
@@ -210,8 +247,8 @@ This command utilizes the Angular CLI (`ng serve`) to build and host the demo ap
 - **Chat Interface:** You'll see the main `ngx-chat-agent` component rendered, providing a familiar chat UI.
 - **Task Management:** The demo allows you to create multiple chat tasks (conversations). Each task appears in a separate tab.
 - **Interaction Buttons:**
-  - `Create Task`: Starts a new chat task and connects it to a _simulated_ agent service (`FakeTaskService`). This service provides canned responses, including examples of different message types like "thinking," "context," and a custom tool message.
+  - `Create Task`: Starts a new chat task and connects it to an agent service via SSE.
   - `Clear All Tasks`: Removes all current tasks from the interface.
-- **Custom Tool Component:** The "fake" agent simulation demonstrates how custom data can be rendered within the chat. Specifically, it shows an example where a message with type `TOOL_TABLE` renders a custom `MessageTableComponent` to display tabular data directly in the chat flow.
+- **Custom Tool Component:** The demo demonstrates how custom data can be rendered within the chat. For example, a message with type `TOOL_TABLE` renders a custom `MessageTableComponent` to display tabular data directly in the chat flow.
 
 Interacting with the demo provides a hands-on understanding of the library's core features, state management via `TaskListStore`, and the customization capabilities using `ComponentMap`.

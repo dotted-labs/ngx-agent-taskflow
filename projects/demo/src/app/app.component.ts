@@ -3,7 +3,6 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { ChatAgentComponent, ComponentMap, TaskListStore } from '@dotted-labs/ngx-chat-agent';
 import { MessageTableComponent } from './components/message-table/message-table.component';
 import { CustomTaskMessageTypes } from './models/message-types.enum';
-import { TaskService } from './services/task.service';
 import { AgentService } from './services/agent.service';
 @Component({
   selector: 'app-root',
@@ -23,7 +22,6 @@ import { AgentService } from './services/agent.service';
 })
 export class AppComponent implements OnInit {
   private readonly agentService = inject(AgentService);
-  private readonly taskService = inject(TaskService);
   private readonly taskNumber = signal(0);
   public readonly taskListStore = inject(TaskListStore);
   public readonly componentMap: ComponentMap = {
