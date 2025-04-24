@@ -42,7 +42,7 @@ export class AppComponent implements OnInit {
         onTaskDelete: (taskId) => console.log('onTaskDelete', taskId),
         onTasksLoad: () => console.log('onTasksLoad'),
         onUserMessage: (taskId: string, message: string) =>
-          this.taskListStore.chatWithAgent(this.agentService.chat(message, taskId), taskId, message),
+          this.taskListStore.chatWithAgent(this.agentService.chat(message, taskId), taskId),
       },
     });
   }
@@ -51,6 +51,9 @@ export class AppComponent implements OnInit {
     const task = await this.taskListStore.createTask<CustomTaskMessageTypes>(`Task ${this.taskNumber()}`);
 
     this.taskNumber.update((prev) => prev + 1);
-    this.taskListStore.chatWithAgent(this.agentService.chat('hi agent!', task.id), task.id, 'hi agent!');
+    this.taskListStore.chatWithAgent(
+      this.agentService.chat('give me a random table with 5 rows and 3 columns with 5 world of warcraft bosses', task.id),
+      task.id,
+    );
   }
 }

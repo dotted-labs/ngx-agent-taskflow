@@ -1,3 +1,3 @@
 export enum CustomTaskMessageTypes {
-  TOOL_TABLE = 'random_person_generator',
+  TOOL_TABLE = 'table_tool',
 }

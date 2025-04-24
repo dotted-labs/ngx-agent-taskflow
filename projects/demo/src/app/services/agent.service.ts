@@ -9,10 +9,10 @@ export class AgentService {
 
   public chat(message: string, threadId: string) {
     return this.sseClient.stream(
-      `http://localhost:3000/agent/chat2?message=${message}&threadId=${threadId}`,
+      `http://localhost:3000/agent/chat`,
       { keepAlive: true, reconnectionDelay: 100_000, responseType: 'event' },
-      { headers: {} },
-      'GET',
+      { headers: {}, body: { message, threadId } },
+      'POST',
     );
   }
 }

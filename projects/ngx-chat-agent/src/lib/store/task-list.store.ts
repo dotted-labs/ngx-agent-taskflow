@@ -330,11 +330,7 @@ export class TaskListStore extends signalStore(
         }
       },
 
-      chatWithAgent<T, U>(
-        agentStream: Observable<any>,
-        taskId: string,
-        message: string = 'Como estas? dame 5 personas aleatorias',
-      ): Subscription {
+      chatWithAgent<T, U>(agentStream: Observable<any>, taskId: string): Subscription {
         // Mark task as processing
         this.updateTaskStatus(taskId, TaskStatus.PROCESSING);
         const startTime = Date.now();
