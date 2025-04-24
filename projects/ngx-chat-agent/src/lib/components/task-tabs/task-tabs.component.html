@@ -47,9 +47,8 @@
                   'via-base-100/80': taskListStore.selectedTabIndex() !== i,
                 }"
                 class="group-hover:flex bg-gradient-to-l to-transparent hidden ml-2 absolute pl-4 pr-1 right-0 top-0 items-center justify-center h-full text-base-content cursor-pointer"
-                (click)="taskListStore.removeTask(task.id)"
               >
-                <ng-icon name="tablerX" class="text-xs"></ng-icon>
+                <ng-icon name="tablerX" class="text-xs" (click)="taskListStore.removeTask(task.id)"></ng-icon>
               </button>
             </div>
           </button>

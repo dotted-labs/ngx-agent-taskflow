@@ -24,6 +24,7 @@ import { MessageDefaultComponent } from '../message-default/message-default.comp
 import { MessageDoneDefaultComponent } from '../message-done-default/message-done-default.component';
 import { MessageThinkDefaultComponent } from '../message-think-default/message-think-default.component';
 import { MessageUserDefaultComponent } from '../message-user-default/message-user-default.component';
+import { ToolDefaultComponent } from '../tool-default/tool-default.component';
 @Component({
   selector: 'ngx-task-item',
   standalone: true,
@@ -43,6 +44,7 @@ export class TaskItemComponent implements AfterViewChecked, OnChanges {
     message: MessageDefaultComponent,
     user: MessageUserDefaultComponent,
     think: MessageThinkDefaultComponent,
+    tool: ToolDefaultComponent,
   });
 
   @ViewChild('messageContainer') messageContainer!: ElementRef;

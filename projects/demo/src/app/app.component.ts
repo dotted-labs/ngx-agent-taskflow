@@ -11,12 +11,12 @@ import { DoneCustomMessageComponent } from './components/done-custom-message/don
   imports: [ChatAgentComponent, CommonModule],
   template: `
     <div class="flex h-screen flex-col p-4 gap-4 items-center">
-      <div class="  w-[500px] overflow-hidden flex justify-center gap-4 p-4">
+      <div class="  w-[700px] overflow-hidden flex justify-center gap-4 p-4">
         <button class="btn btn-sm btn-primary" (click)="createTask(true)">Create Task</button>
         <button class="btn btn-sm btn-error" (click)="taskListStore.removeAllTasks()">Clear All Tasks</button>
       </div>
 
-      <div class="border border-base-300 rounded-2xl h-[500px] w-[500px] overflow-hidden">
+      <div class="border border-base-300 rounded-2xl h-[800px] w-[700px] overflow-hidden">
         <ngx-chat-agent [componentMap]="componentMap" [toolComponentMap]="toolComponentMap" />
       </div>
     </div>
@@ -51,9 +51,5 @@ export class AppComponent implements OnInit {
     const task = await this.taskListStore.createTask<CustomTaskMessageTypes>(`Task ${this.taskNumber()}`);
 
     this.taskNumber.update((prev) => prev + 1);
-    this.taskListStore.chatWithAgent(
-      this.agentService.chat('give me a random table with 5 rows and 3 columns with 5 world of warcraft bosses', task.id),
-      task.id,
-    );
   }
 }

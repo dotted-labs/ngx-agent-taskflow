@@ -1,17 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, input } from '@angular/core';
-import { TaskData } from '../../models/task-data.interface';
-import { MessageComponentAbstraction } from '../../models/message-component-abstraction';
+import { Component, computed } from '@angular/core';
+import { MarkdownModule } from 'ngx-markdown';
+import { MessageDirective } from '../../directives/message.directive';
 import { TaskMessageTypes } from '../../models/message-types.enum';
 @Component({
   selector: 'ngx-message-default',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MarkdownModule],
   templateUrl: './message-default.component.html',
 })
-export class MessageDefaultComponent implements MessageComponentAbstraction<TaskMessageTypes, any> {
-  public item = input.required<TaskData<TaskMessageTypes, any>>();
-  public observation = computed(() => this.item().observation);
-  public content = computed(() => this.item().content);
-  public type = computed(() => this.item().type);
+export class MessageDefaultComponent extends MessageDirective<TaskMessageTypes, any> {
+  public message = computed(() => this.item().content.replace(/\\n/g, '\n\n'));
 }
