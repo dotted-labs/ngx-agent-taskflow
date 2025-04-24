@@ -35,7 +35,8 @@ export class TaskItemComponent implements AfterViewChecked, OnChanges {
   @Input() task!: Task<TaskMessageTypes, any>;
   @Input() isActive = false;
 
-  public readonly componentMap = input<ComponentMap>();
+  public readonly componentMap = input<ComponentMap>({});
+  public readonly toolComponentMap = input<ComponentMap>({});
   public readonly defaultComponentMap = signal<ComponentMap>({
     done: MessageDoneDefaultComponent,
     context: MessageContextDefaultComponent,
@@ -75,11 +76,16 @@ export class TaskItemComponent implements AfterViewChecked, OnChanges {
     }
   }
 
-  public getComponentForItem(sender: TaskMessageSender, type: string | undefined): any {
-    if (!type || !this.componentMapComputed()[type]) {
+  public getComponentForItem(sender: TaskMessageSender, item: any): any {
+    if (item.type === TaskMessageTypes.TOOL) {
+      if (this.toolComponentMap()[item.content]) {
+        return this.toolComponentMap()[item.content];
+      }
+    }
+    if (!item.type || !this.componentMapComputed()[item.type]) {
       return MessageDefaultComponent;
     }
-    return this.componentMapComputed()[type];
+    return this.componentMapComputed()[item.type];
   }
 
   public sendMessage() {

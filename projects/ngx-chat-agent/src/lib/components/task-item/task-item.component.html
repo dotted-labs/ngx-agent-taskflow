@@ -3,7 +3,7 @@
     @for (message of task.messages; track message; let last = $last) {
       <li [class.mb-12]="last">
         @for (item of message.data; let i = $index; track i) {
-          <ng-container *ngComponentOutlet="getComponentForItem(message.sender, item.type); inputs: { item: item }"></ng-container>
+          <ng-container *ngComponentOutlet="getComponentForItem(message.sender, item); inputs: { item: item }"></ng-container>
         }
       </li>
     }

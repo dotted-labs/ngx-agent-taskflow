@@ -214,9 +214,9 @@ export class TaskListStore extends signalStore(
 
         // Add user message to the task
         this.addTaskMessage(taskId, TaskMessageSender.USER, {
-          type: TaskMessageTypes.USER as any,
+          type: TaskMessageTypes.USER,
           content: messageContent,
-          observation: null,
+          observation: TaskMessageTypes.USER,
         });
 
         // Call onUserMessage callback if provided
@@ -337,6 +337,7 @@ export class TaskListStore extends signalStore(
       ): Subscription {
         // Mark task as processing
         this.updateTaskStatus(taskId, TaskStatus.PROCESSING);
+        const startTime = Date.now();
         const observable = agentStream.subscribe((event: any) => {
           const type = event.type;
           const data = event.data;
@@ -368,17 +369,24 @@ export class TaskListStore extends signalStore(
             case 'tool':
               const toolName = JSON.parse(data).kwargs.name;
               const toolContent = JSON.parse(data).kwargs.content;
+              const toolData = JSON.parse(toolContent);
 
               this.addTaskMessage(taskId, TaskMessageSender.ASSISTANT, {
                 type: TaskMessageTypes.TOOL,
                 content: toolName,
-                observation: toolContent,
+                observation: toolData,
               });
               break;
             case 'done':
               const entityMap = store.entityMap();
               const task = entityMap[taskId];
               if (task && task.status !== TaskStatus.FAILED) {
+                const totalTimeMs = Date.now() - startTime;
+                this.addTaskMessage(taskId, TaskMessageSender.ASSISTANT, {
+                  type: TaskMessageTypes.DONE,
+                  content: 'Done',
+                  observation: { totalTimeMs },
+                });
                 this.updateTaskStatus(taskId, TaskStatus.DONE);
               }
               observable.unsubscribe();
@@ -391,34 +399,6 @@ export class TaskListStore extends signalStore(
         });
 
         return observable;
-
-        // .subscribe({
-        //   next: (data) => {
-        //     console.log('data', data);
-        //     // Add new data to the task as a message
-        //     const newTaskData = dataMapper(data);
-        //     this.addTaskMessage(taskId, sender, newTaskData);
-        //   },
-        //   error: (error) => {
-        //     // Mark task as failed
-        //     this.updateTaskStatus(taskId, TaskStatus.FAILED);
-
-        //     // Add error information to task data
-        //     this.addTaskMessage(taskId, TaskMessageSender.ASSISTANT, {
-        //       type: TaskMessageTypes.ERROR as any,
-        //       content: error.message || 'Unknown error',
-        //       observation: 'Task failed due to an error',
-        //     });
-        //   },
-        //   complete: () => {
-        //     // Mark task as done when observable completes
-        //     const entityMap = store.entityMap();
-        //     const task = entityMap[taskId];
-        //     if (task && task.status !== TaskStatus.FAILED) {
-        //       this.updateTaskStatus(taskId, TaskStatus.DONE);
-        //     }
-        //   },
-        // });
       },
 
       selectTab(tabIndex: number) {

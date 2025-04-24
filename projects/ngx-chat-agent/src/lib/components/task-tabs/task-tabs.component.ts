@@ -31,6 +31,7 @@ import { TaskItemComponent } from '../task-item/task-item.component';
 export class TaskTabsComponent implements OnInit, OnDestroy {
   public readonly tasks: InputSignal<Task<TaskMessageTypes, any>[]> = input<Task<TaskMessageTypes, any>[]>([]);
   public readonly componentMap: InputSignal<ComponentMap> = input<ComponentMap>({});
+  public readonly toolComponentMap: InputSignal<ComponentMap> = input<ComponentMap>({});
   public readonly taskListStore = inject(TaskListStore);
   private readonly ngZone = inject(NgZone);
   private readonly document = inject(DOCUMENT);

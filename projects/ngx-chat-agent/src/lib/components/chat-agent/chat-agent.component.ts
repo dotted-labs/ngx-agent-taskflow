@@ -19,4 +19,5 @@ export class ChatAgentComponent {
 
   // Component map for task data types
   public componentMap: InputSignal<ComponentMap> = input<ComponentMap>({});
+  public toolComponentMap: InputSignal<ComponentMap> = input<ComponentMap>({});
 }

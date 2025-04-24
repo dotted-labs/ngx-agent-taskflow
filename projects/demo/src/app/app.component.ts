@@ -1,9 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { ChatAgentComponent, ComponentMap, TaskListStore } from '@dotted-labs/ngx-chat-agent';
+import { ChatAgentComponent, ComponentMap, TaskListStore, TaskMessageTypes } from '@dotted-labs/ngx-chat-agent';
 import { MessageTableComponent } from './components/message-table/message-table.component';
 import { CustomTaskMessageTypes } from './models/message-types.enum';
 import { AgentService } from './services/agent.service';
+import { MessageDoneDefaultComponent } from '../../../ngx-chat-agent/src/lib/components/message-done-default/message-done-default.component';
+import { DoneCustomMessageComponent } from './components/done-custom-message/done-custome-message.component';
 @Component({
   selector: 'app-root',
   imports: [ChatAgentComponent, CommonModule],
@@ -15,7 +17,7 @@ import { AgentService } from './services/agent.service';
       </div>
 
       <div class="border border-base-300 rounded-2xl h-[500px] w-[500px] overflow-hidden">
-        <ngx-chat-agent [componentMap]="componentMap" />
+        <ngx-chat-agent [componentMap]="componentMap" [toolComponentMap]="toolComponentMap" />
       </div>
     </div>
   `,
@@ -25,6 +27,9 @@ export class AppComponent implements OnInit {
   private readonly taskNumber = signal(0);
   public readonly taskListStore = inject(TaskListStore);
   public readonly componentMap: ComponentMap = {
+    [TaskMessageTypes.DONE]: DoneCustomMessageComponent,
+  };
+  public readonly toolComponentMap: ComponentMap = {
     [CustomTaskMessageTypes.TOOL_TABLE]: MessageTableComponent,
   };
 
